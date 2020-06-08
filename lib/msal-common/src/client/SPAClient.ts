@@ -95,7 +95,7 @@ export class SPAClient extends BaseClient {
         const scopeSet = new ScopeSet(
             request && request.scopes || [],
             this.config.authOptions.clientId,
-            !isLoginCall   
+            !isLoginCall
         );
 
         if (request.extraScopesToConsent) {
@@ -478,8 +478,8 @@ export class SPAClient extends BaseClient {
         }
 
         // Get id token and client info from cache
-        const rawIdToken = this.cacheStorage.getItem(PersistentCacheKeys.ID_TOKEN);
-        const rawClientInfo = this.cacheStorage.getItem(PersistentCacheKeys.CLIENT_INFO);
+        const rawIdToken = this.cacheStorage.getItem(PersistentCacheKeys.ID_TOKEN) as string;
+        const rawClientInfo = this.cacheStorage.getItem(PersistentCacheKeys.CLIENT_INFO) as string;
 
         if(!StringUtils.isEmpty(rawIdToken) && !StringUtils.isEmpty(rawClientInfo)) {
             const idToken = new IdToken(rawIdToken, this.cryptoUtils);

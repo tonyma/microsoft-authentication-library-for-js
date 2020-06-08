@@ -106,6 +106,14 @@ export const ClientAuthErrorMessage = {
     CachePluginError: {
         code: "no cache plugin set on CacheManager",
         desc: "ICachePlugin needs to be set before using readFromStorage or writeFromStorage"
+    },
+    NoTokenInCache: {
+        code: "no_token_in_cache",
+        desc: "cache miss, there is no matching credential in the cache "
+    },
+    NoAccountInSilentRequest: {
+        code: "no_account_in_silent_request",
+        desc: "Please pass an account object, silent flow is not supported without account information"
     }
 };
 
@@ -307,5 +315,19 @@ export class ClientAuthError extends AuthError {
      */
     static createCachePluginError(): ClientAuthError {
         return new ClientAuthError(ClientAuthErrorMessage.CachePluginError.code, `${ClientAuthErrorMessage.CachePluginError.desc}`);
+    }
+
+    /**
+     * Throws error for a cache miss
+     */
+    static createNoTokenInCacheError(): ClientAuthError {
+        return new ClientAuthError(ClientAuthErrorMessage.NoTokenInCache.code, `${ClientAuthErrorMessage.NoTokenInCache.desc}`);
+    }
+
+    /**
+     * Throws error when silent requests are made without an account object
+     */
+    static createNoAccountInSilentRequestError(): ClientAuthError {
+        return new ClientAuthError(ClientAuthErrorMessage.NoAccountInSilentRequest.code, `${ClientAuthErrorMessage.NoAccountInSilentRequest.desc}`);
     }
 }
