@@ -4,7 +4,8 @@ import {
     Deserializer,
     JsonCache,
     ClientAuthError,
-    StringUtils
+    StringUtils,
+    InMemoryCache
 } from '@azure/msal-common';
 import { ICachePlugin } from './ICachePlugin';
 
@@ -46,7 +47,7 @@ export class CacheManager {
      * Serializes in memory cache to JSON
      */
     serialize(): string {
-        let finalState = Serializer.serializeAllCache(this.storage.getCache());
+        let finalState = Serializer.serializeAllCache(this.storage.getCache() as InMemoryCache);
 
         // if cacheSnapshot not null or empty, merge
         if(!StringUtils.isEmpty(this.cacheSnapshot)) {
@@ -79,7 +80,7 @@ export class CacheManager {
 
             this.cacheSnapshot = await this.persistence.readFromStorage();
 
-            let finalState = Serializer.serializeAllCache(this.storage.getCache());
+            let finalState = Serializer.serializeAllCache(this.storage.getCache() as InMemoryCache);
 
             // if cacheSnapshot not null or empty, merge
             if(!StringUtils.isEmpty(this.cacheSnapshot)) {
