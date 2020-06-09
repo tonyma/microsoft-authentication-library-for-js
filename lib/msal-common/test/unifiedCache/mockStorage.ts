@@ -2,46 +2,34 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import {
-    ICacheStorage,
-    InMemoryCache,
-    CredentialType,
-    CacheSchemaType,
-    CacheHelper,
-    AccountEntity,
-    AccessTokenEntity,
-    RefreshTokenEntity,
-    IdTokenEntity,
-    AppMetadataEntity
-} from '@azure/msal-common';
+import { ICacheStorage } from "../../src/cache/ICacheStorage";
+import { CacheHelper } from "../../src/unifiedCache/utils/CacheHelper";
+import { InMemoryCache } from "../../src/unifiedCache/utils/CacheTypes";
+import { CredentialType, CacheSchemaType } from "../../src/utils/Constants";
+import { AccountEntity } from "../../src/unifiedCache/entities/AccountEntity";
+import { AccessTokenEntity } from "../../src/unifiedCache/entities/AccessTokenEntity";
+import { RefreshTokenEntity } from "../../src/unifiedCache/entities/RefreshTokenEntity";
+import { IdTokenEntity } from "../../src/unifiedCache/entities/IdTokenEntity";
+import { AppMetadataEntity } from "../../src/unifiedCache/entities/AppMetadataEntity";
 
 /**
  * This class implements Storage for node, reading cache from user specified storage location or an  extension library
  */
 export class Storage implements ICacheStorage {
-    // Cache configuration, either set by user or default values.
-    private inMemoryCache: InMemoryCache = {
-        accounts: {},
-        accessTokens: {},
-        refreshTokens: {},
-        appMetadata: {},
-        idTokens: {},
-    };
-    private changeEmitters: Array<Function> = [];
 
-    registerChangeEmitter(func: () => void): void {
-        this.changeEmitters.push(func);
-    }
-
-    emitChange() {
-        this.changeEmitters.forEach(func => func.call(null));
-    }
+    private inMemoryCache;
 
     /**
      * gets the current in memory cache for the client
      */
     getCache(): object {
-        return this.inMemoryCache;
+        return {
+            accounts: {},
+            accessTokens: {},
+            idTokens: {},
+            refreshTokens: {},
+            appMetadata: {}
+        };
     }
 
     /**
@@ -50,7 +38,6 @@ export class Storage implements ICacheStorage {
      */
     setCache(inMemoryCache: InMemoryCache) {
         this.inMemoryCache = inMemoryCache;
-        this.emitChange();
     }
 
     /**
@@ -60,8 +47,12 @@ export class Storage implements ICacheStorage {
      * @param type
      * @param inMemory
      */
-    setItem(key: string, value: string | object, type?: string, inMemory?: boolean): void {
-
+    setItem(
+        key: string,
+        value: string | object,
+        type?: string,
+        inMemory?: boolean
+    ): void {
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -100,14 +91,13 @@ export class Storage implements ICacheStorage {
                 break;
             }
             default: {
-                console.log('Invalid Cache Type');
+                console.log("Invalid Cache Type");
                 return;
             }
         }
 
         // update inMemoryCache
         this.setCache(cache);
-        this.emitChange();
     }
 
     /**
@@ -118,7 +108,6 @@ export class Storage implements ICacheStorage {
      * @param inMemory
      */
     getItem(key: string, type?: string, inMemory?: boolean): string | object {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -126,7 +115,7 @@ export class Storage implements ICacheStorage {
         }
 
         // read inMemoryCache
-        const cache = this.getCache() as InMemoryCache;
+        const cache = this.getCache();
 
         // save the cacheItem
         switch (type!) {
@@ -161,7 +150,7 @@ export class Storage implements ICacheStorage {
                 return (cache.appMetadata[key] as AppMetadataEntity) || null;
             }
             default: {
-                console.log('Invalid Cache Type');
+                console.log("Invalid Cache Type");
                 return {};
             }
         }
@@ -174,7 +163,6 @@ export class Storage implements ICacheStorage {
      * @param inMemory
      */
     removeItem(key: string, type?: string, inMemory?: boolean): boolean {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -182,7 +170,7 @@ export class Storage implements ICacheStorage {
         }
 
         // read inMemoryCache
-        const cache = this.getCache() as InMemoryCache;
+        const cache = this.getCache();
         let result: boolean = false;
 
         // save the cacheItem
@@ -229,7 +217,7 @@ export class Storage implements ICacheStorage {
                 break;
             }
             default: {
-                console.log('Invalid Cache Type');
+                console.log("Invalid Cache Type");
                 break;
             }
         }
@@ -237,7 +225,6 @@ export class Storage implements ICacheStorage {
         // write to the cache after removal
         if (result) {
             this.setCache(cache);
-            this.emitChange();
         }
         return result;
     }
@@ -256,7 +243,6 @@ export class Storage implements ICacheStorage {
      * TODO: implement after the lookup implementation
      */
     getKeys(inMemory?: boolean): string[] {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -268,14 +254,13 @@ export class Storage implements ICacheStorage {
         let cacheKeys: string[] = [];
 
         // read all keys
-        Object.keys(cache).forEach(key => {
-            Object.keys(key).forEach(internalKey => {
+        Object.keys(cache).forEach((key) => {
+            Object.keys(key).forEach((internalKey) => {
                 cacheKeys.push(internalKey);
-            })
+            });
         });
 
         return cacheKeys;
-
     }
 
     /**
@@ -292,12 +277,10 @@ export class Storage implements ICacheStorage {
         const cache = this.getCache();
 
         // read all keys
-        Object.keys(cache).forEach(key => {
-            Object.keys(key).forEach(internalKey => {
+        Object.keys(cache).forEach((key) => {
+            Object.keys(key).forEach((internalKey) => {
                 this.removeItem(internalKey);
-            })
+            });
         });
-
-        this.emitChange();
     }
 }

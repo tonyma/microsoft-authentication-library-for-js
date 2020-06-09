@@ -11,18 +11,20 @@ import { ServerAuthorizationCodeResponse } from "../server/ServerAuthorizationCo
 import { Logger } from "../logger/Logger";
 import { ServerError } from "../error/ServerError";
 import { IdToken } from "../account/IdToken";
-import { UnifiedCacheManager } from "../unifiedCache/UnifiedCacheManager";
+import { UnifiedCacheManager } from "../cache/UnifiedCacheManager";
 import { ScopeSet } from "../request/ScopeSet";
 import { TimeUtils } from "../utils/TimeUtils";
 import { AuthenticationResult } from "./AuthenticationResult";
-import { AccountEntity } from "../unifiedCache/entities/AccountEntity";
+import { AccountEntity } from "../cache/entities/AccountEntity";
 import { Authority } from "../authority/Authority";
 import { AuthorityType } from "../authority/AuthorityType";
-import { IdTokenEntity } from "../unifiedCache/entities/IdTokenEntity";
-import { AccessTokenEntity } from "../unifiedCache/entities/AccessTokenEntity";
-import { RefreshTokenEntity } from "../unifiedCache/entities/RefreshTokenEntity";
+import { IdTokenEntity } from "../cache/entities/IdTokenEntity";
+import { AccessTokenEntity } from "../cache/entities/AccessTokenEntity";
+import { RefreshTokenEntity } from "../cache/entities/RefreshTokenEntity";
 import { InteractionRequiredAuthError } from "../error/InteractionRequiredAuthError";
-import { CacheRecord } from "../unifiedCache/entities/CacheRecord";
+import { CacheRecord } from "../cache/entities/CacheRecord";
+import { CacheHelper } from "../cache/utils/CacheHelper";
+import { EnvironmentAliases, PreferredCacheEnvironment } from "../utils/Constants";
 
 /**
  * Class that handles response parsing.
@@ -92,7 +94,7 @@ export class ResponseHandler {
         if (serverResponse.client_info) {
             this.clientInfo = buildClientInfo(serverResponse.client_info, this.cryptoObj);
             if (!StringUtils.isEmpty(this.clientInfo.uid) && !StringUtils.isEmpty(this.clientInfo.utid)) {
-                this.homeAccountIdentifier = this.cryptoObj.base64Encode(this.clientInfo.uid) + "." + this.cryptoObj.base64Encode(this.clientInfo.utid);
+                this.homeAccountIdentifier = this.clientInfo.uid + "." + this.clientInfo.utid;
             }
         }
     }
@@ -122,6 +124,7 @@ export class ResponseHandler {
             accessToken: serverTokenResponse.access_token,
             expiresOn: new Date(cacheRecord.accessToken.expiresOn),
             extExpiresOn: new Date(cacheRecord.accessToken.extendedExpiresOn),
+            account: CacheHelper.toIAccount(cacheRecord.account),
             familyId: serverTokenResponse.foci || null,
         };
 
@@ -158,7 +161,6 @@ export class ResponseHandler {
      * @param authority
      */
     generateCacheRecord(serverTokenResponse: ServerAuthorizationTokenResponse, idTokenObj: IdToken, authority: Authority): CacheRecord {
-
         const cacheRecord = new CacheRecord();
 
         // Account
@@ -168,10 +170,13 @@ export class ResponseHandler {
             authority
         );
 
+        const reqEnvironment = authority.canonicalAuthorityUrlComponents.HostNameAndPort;
+        const env = EnvironmentAliases.includes(reqEnvironment) ? PreferredCacheEnvironment : reqEnvironment;
+
         // IdToken
         cacheRecord.idToken = IdTokenEntity.createIdTokenEntity(
             this.homeAccountIdentifier,
-            authority.canonicalAuthorityUrlComponents.HostNameAndPort,
+            env,
             serverTokenResponse.id_token,
             this.clientId,
             idTokenObj.claims.tid
@@ -185,7 +190,7 @@ export class ResponseHandler {
 
         cacheRecord.accessToken = AccessTokenEntity.createAccessTokenEntity(
             this.homeAccountIdentifier,
-            authority.canonicalAuthorityUrlComponents.HostNameAndPort,
+            env,
             serverTokenResponse.access_token,
             this.clientId,
             idTokenObj.claims.tid,
@@ -197,7 +202,7 @@ export class ResponseHandler {
         // refreshToken
         cacheRecord.refreshToken = RefreshTokenEntity.createRefreshTokenEntity(
             this.homeAccountIdentifier,
-            authority.canonicalAuthorityUrlComponents.HostNameAndPort,
+            env,
             serverTokenResponse.refresh_token,
             this.clientId,
             serverTokenResponse.foci

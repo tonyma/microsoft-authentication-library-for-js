@@ -9,7 +9,7 @@ export {
 } from "./config/ClientConfiguration";
 export { ClientConfiguration } from "./config/ClientConfiguration";
 // Account
-export { Account } from "./account/Account";
+export { IAccount } from "./account/IAccount";
 export { IdToken } from "./account/IdToken";
 export { IdTokenClaims } from "./account/IdTokenClaims";
 // Authority
@@ -18,12 +18,18 @@ export { B2cAuthority } from "./authority/B2cAuthority";
 export { AuthorityFactory } from "./authority/AuthorityFactory";
 export { AuthorityType } from "./authority/AuthorityType";
 // Cache
-export { ICacheStorage } from "./cache/ICacheStorage";
-export { UnifiedCacheManager } from "./unifiedCache/UnifiedCacheManager";
-export { JsonCache, InMemoryCache } from "./unifiedCache/utils/CacheTypes";
-export { Serializer } from "./unifiedCache/serialize/Serializer";
-export { Deserializer } from "./unifiedCache/serialize/Deserializer";
-export { CacheHelper } from "./unifiedCache/utils/CacheHelper";
+export { ICacheStorage } from "./cache/interface/ICacheStorage";
+export { UnifiedCacheManager } from "./cache/UnifiedCacheManager";
+export { JsonCache, InMemoryCache } from "./cache/utils/CacheTypes";
+export { Serializer } from "./cache/serialize/Serializer";
+export { Deserializer } from "./cache/serialize/Deserializer";
+export { CacheHelper } from "./cache/utils/CacheHelper";
+export { Credential } from "./cache/entities/Credential";
+export { AppMetadataEntity } from "./cache/entities/AppMetadataEntity";
+export { AccountEntity } from "./cache/entities/AccountEntity";
+export { IdTokenEntity } from "./cache/entities/IdTokenEntity";
+export { AccessTokenEntity } from "./cache/entities/AccessTokenEntity";
+export { RefreshTokenEntity } from "./cache/entities/RefreshTokenEntity";
 // Network Interface
 export { INetworkModule, NetworkRequestOptions } from "./network/INetworkModule";
 export { NetworkResponse } from "./network/NetworkManager";
@@ -37,8 +43,6 @@ export { AuthorizationCodeRequest } from "./request/AuthorizationCodeRequest";
 export { RefreshTokenRequest } from "./request/RefreshTokenRequest";
 export { SilentFlowRequest } from "./request/SilentFlowRequest";
 export { AuthenticationResult } from "./response/AuthenticationResult";
-export { TokenRenewParameters } from "./request/TokenRenewParameters";
-export { TokenResponse } from "./response/TokenResponse";
 export { DeviceCodeRequest } from "./request/DeviceCodeRequest";
 // Logger Callback
 export { ILoggerCallback, LogLevel, Logger } from "./logger/Logger";

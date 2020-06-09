@@ -32,7 +32,8 @@ export const Constants = {
     FRAGMENT_RESPONSE_MODE: "fragment",
     S256_CODE_CHALLENGE_METHOD: "S256",
     URL_FORM_CONTENT_TYPE: "application/x-www-form-urlencoded;charset=utf-8",
-    AUTHORIZATION_PENDING: "authorization_pending"
+    AUTHORIZATION_PENDING: "authorization_pending",
+    NOT_DEFINED: "not_defined"
 };
 
 /**
@@ -65,13 +66,16 @@ export const AADTrustedHostList: string[] = [
     "login.microsoftonline.us"
 ];
 
+/**
+ * TODO: placeholder for discovery endpoint call. dynamically generate preferredCache and cacheAliases per cloud
+ */
 export const EnvironmentAliases: string[] = [
     "login.microsoftonline.com",
     "login.windows.net",
+    "login.windows-ppe.net",
     "login.microsoft.com",
     "sts.windows.net"
 ];
-
 export const PreferredCacheEnvironment: string = "login.windows.net";
 
 /**
@@ -254,7 +258,8 @@ export enum CredentialType {
 export enum CacheSchemaType {
     ACCOUNT = "Account",
     CREDENTIAL = "Credential",
-    APP_META_DATA = "AppMetadata"
+    APP_META_DATA = "AppMetadata",
+    TEMPORARY = "TempCache"
 }
 
 /**
@@ -269,19 +274,6 @@ export enum CacheType {
     REFRESH_TOKEN = 2002,
     ID_TOKEN = 2003,
     APP_META_DATA = 3001
-};
-
-/**
- * accountId: <home_account_id>-<environment>
- * credentialId: <credential_type>-<client-id>-<realm>
- */
-export enum CredentialKeyPosition {
-    HOME_ACCOUNT_ID = 0,
-    ENVIRONMENT = 1,
-    CREDENTIAL_TYPE = 2,
-    CLIENT_ID = 3,
-    REALM = 4,
-    TARGET = 5
 };
 
 /**

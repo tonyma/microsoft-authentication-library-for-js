@@ -16,6 +16,9 @@ import {
     ClientAuthError,
     Constants,
     B2cAuthority,
+    JsonCache,
+    Serializer,
+    InMemoryCache,
 } from '@azure/msal-common';
 import { Configuration, buildAppConfiguration } from '../config/Configuration';
 import { CryptoProvider } from '../crypto/CryptoProvider';
@@ -181,5 +184,20 @@ export abstract class ClientApplication {
         );
 
         return this._authority;
+    }
+
+    /**
+     * Initialize cache from a user provided Json file
+     * @param cacheObject
+     */
+    initializeCache(cacheObject: JsonCache) {
+        this.cacheContext.setCurrentCache(this.storage, cacheObject);
+    }
+
+    /**
+     * read the cache as a Json convertible object from memory
+     */
+    readCache(): JsonCache {
+        return Serializer.serializeAllCache(this.storage.getCache() as InMemoryCache);
     }
 }

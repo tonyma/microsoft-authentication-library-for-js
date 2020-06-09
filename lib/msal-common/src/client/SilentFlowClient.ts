@@ -8,20 +8,17 @@ import { ClientConfiguration } from "../config/ClientConfiguration";
 import { SilentFlowRequest } from "../request/SilentFlowRequest";
 import { AuthenticationResult } from "../response/AuthenticationResult";
 import { CredentialType } from "../utils/Constants";
-import { CacheRecord } from "../unifiedCache/entities/CacheRecord";
-import { IdTokenEntity } from "../unifiedCache/entities/IdTokenEntity";
-import { CacheHelper } from "../unifiedCache/utils/CacheHelper";
-import { AccessTokenEntity } from "../unifiedCache/entities/AccessTokenEntity";
-import { RefreshTokenEntity } from "../unifiedCache/entities/RefreshTokenEntity";
+import { CacheRecord } from "../cache/entities/CacheRecord";
+import { IdTokenEntity } from "../cache/entities/IdTokenEntity";
+import { CacheHelper } from "../cache/utils/CacheHelper";
+import { AccessTokenEntity } from "../cache/entities/AccessTokenEntity";
+import { RefreshTokenEntity } from "../cache/entities/RefreshTokenEntity";
 import { ScopeSet } from "../request/ScopeSet";
 import { IdToken } from "../account/IdToken";
 import { TimeUtils } from "../utils/TimeUtils";
 import { RefreshTokenRequest } from "../request/RefreshTokenRequest";
 import { RefreshTokenClient } from "./RefreshTokenClient";
 import { ClientAuthError } from "../error/ClientAuthError";
-import { IAccount } from '../account/IAccount';
-import { AccountFilter } from '../unifiedCache/utils/CacheTypes';
-import { AccountEntity } from '../unifiedCache/entities/AccountEntity';
 
 export class SilentFlowClient extends BaseClient {
 
@@ -39,20 +36,14 @@ export class SilentFlowClient extends BaseClient {
         let idTokenObj: IdToken;
         const requestScopes = new ScopeSet(request.scopes || [], this.config.authOptions.clientId, true);
 
-        // We currently do not support silent flow for account===null use cases; This will be revisited for confidential flow usecases
+        // We currently do not support silent flow for account === null use cases; This will be revisited for confidential flow usecases
         if (request.account === null) {
             throw ClientAuthError.createNoAccountInSilentRequestError();
         } else {
-
-            const userAccount: IAccount = request.account;
-            const accountFilter: AccountFilter = {
-                homeAccountId: request.account.homeAccountId,
-                environment: request.account.environment
-            };
-            const accountEntity: AccountEntity = this.unifiedCacheManager.getAccountsFilteredBy(accountFilter);
-
+            cacheRecord = new CacheRecord();
             // fetch account
-            cacheRecord.account = this.unifiedCacheManager.getAccount(request.account.generateAccountKey());
+            const accountKey: string = CacheHelper.generateAccountCacheKey(request.account);
+            cacheRecord.account = this.unifiedCacheManager.getAccount(accountKey);
 
             const homeAccountId = cacheRecord.account.homeAccountId;
             const environment = cacheRecord.account.environment;
@@ -95,6 +86,7 @@ export class SilentFlowClient extends BaseClient {
             idToken: cacheRecord.idToken.secret,
             idTokenClaims: idTokenObj.claims,
             accessToken: cacheRecord.accessToken.secret,
+            account: CacheHelper.toIAccount(cacheRecord.account),
             expiresOn: new Date(cacheRecord.accessToken.expiresOn),
             extExpiresOn: new Date(cacheRecord.accessToken.extendedExpiresOn),
             familyId: null,
@@ -106,7 +98,7 @@ export class SilentFlowClient extends BaseClient {
      * @param request
      */
     fetchIdToken(homeAccountId: string, environment: string): IdTokenEntity {
-        const idTokenKey: string = CacheHelper.generateCacheKey(
+        const idTokenKey: string = CacheHelper.generateCredentialCacheKey(
             homeAccountId,
             environment,
             CredentialType.ID_TOKEN,
@@ -122,7 +114,7 @@ export class SilentFlowClient extends BaseClient {
      * @param scopes
      */
     fetchAccessToken(homeAccountId: string, environment: string, scopes: ScopeSet): AccessTokenEntity {
-        const accessTokenKey: string = CacheHelper.generateCacheKey(
+        const accessTokenKey: string = CacheHelper.generateCredentialCacheKey(
             homeAccountId,
             environment,
             CredentialType.ACCESS_TOKEN,
@@ -139,7 +131,7 @@ export class SilentFlowClient extends BaseClient {
      * @param request
      */
     fetchRefreshToken(homeAccountId: string, environment: string): RefreshTokenEntity {
-        const refreshTokenKey: string = CacheHelper.generateCacheKey(
+        const refreshTokenKey: string = CacheHelper.generateCredentialCacheKey(
             homeAccountId,
             environment,
             CredentialType.REFRESH_TOKEN,
