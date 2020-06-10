@@ -4,6 +4,7 @@ export { AuthorizationCodeClient} from "./client/AuthorizationCodeClient";
 export { DeviceCodeClient } from "./client/DeviceCodeClient";
 export { RefreshTokenClient } from "./client/RefreshTokenClient";
 export { SilentFlowClient } from "./client/SilentFlowClient";
+export { CacheInterface } from "./client/CacheInterface";
 export {
     AuthOptions, SystemOptions, LoggerOptions, TelemetryOptions, DEFAULT_SYSTEM_OPTIONS
 } from "./config/ClientConfiguration";

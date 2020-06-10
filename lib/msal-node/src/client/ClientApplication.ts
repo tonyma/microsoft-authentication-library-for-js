@@ -16,6 +16,8 @@ import {
     ClientAuthError,
     Constants,
     B2cAuthority,
+    CacheInterface,
+    IAccount,
 } from '@azure/msal-common';
 import { Configuration, buildAppConfiguration } from '../config/Configuration';
 import { CryptoProvider } from '../crypto/CryptoProvider';
@@ -30,6 +32,7 @@ export abstract class ClientApplication {
     private readonly cryptoProvider: CryptoProvider;
     private storage: Storage;
     private cacheManager: CacheManager;
+    private cacheInterface: CacheInterface;
 
     /**
      * @constructor
@@ -45,6 +48,14 @@ export abstract class ClientApplication {
 
         this.cryptoProvider = new CryptoProvider();
         B2cAuthority.setKnownAuthorities(this.config.auth.knownAuthorities!);
+    }
+
+    /**
+     * Initialize the cache interface for the user to get account information and remove account
+     */
+    async initializeCacheInterface() {
+        const config = await this.buildOauthClientConfiguration();
+        this.cacheInterface = new CacheInterface(config);
     }
 
     /**
@@ -181,5 +192,20 @@ export abstract class ClientApplication {
         );
 
         return this._authority;
+    }
+
+    /**
+    * Public API to get all accounts in the cache
+    */
+    getAllAccounts(): IAccount[] {
+        return this.cacheInterface.getAllAccounts();
+    }
+
+    /**
+    * Public API to remove a given account
+    * @param account
+    */
+    removeAccount(account: IAccount) {
+        return this.cacheInterface.removeAccount(account);
     }
 }

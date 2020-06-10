@@ -133,4 +133,13 @@ export abstract class BaseClient {
             return allAccounts;
         }
     }
+
+    /**
+     * Remove account from cache
+     * @param account
+     */
+    public removeAccount(account: IAccount): boolean {
+        const accountKey = CacheHelper.generateAccountCacheKey(account);
+        return this.unifiedCacheManager.removeAccount(accountKey);
+    }
 }
