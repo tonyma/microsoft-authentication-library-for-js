@@ -19,6 +19,7 @@ import { TimeUtils } from "../utils/TimeUtils";
 import { RefreshTokenRequest } from "../request/RefreshTokenRequest";
 import { RefreshTokenClient } from "./RefreshTokenClient";
 import { ClientAuthError } from "../error/ClientAuthError";
+import { CredentialFilter, CredentialCache } from "../cache/utils/CacheTypes";
 
 export class SilentFlowClient extends BaseClient {
 
@@ -49,9 +50,9 @@ export class SilentFlowClient extends BaseClient {
             const environment = cacheRecord.account.environment;
 
             // fetch idToken, accessToken, refreshToken
-            cacheRecord.idToken = this.fetchIdToken(homeAccountId, environment);
+            cacheRecord.idToken = this.fetchIdToken(homeAccountId, environment, cacheRecord.account.realm);
             idTokenObj = new IdToken(cacheRecord.idToken.secret, this.config.cryptoInterface);
-            cacheRecord.accessToken = this.fetchAccessToken(homeAccountId, environment, requestScopes);
+            cacheRecord.accessToken = this.fetchAccessToken(homeAccountId, environment, requestScopes, cacheRecord.account.realm);
             cacheRecord.refreshToken = this.fetchRefreshToken(homeAccountId, environment);
 
             // If accessToken has expired, call refreshToken flow to fetch a new set of tokens
@@ -83,10 +84,10 @@ export class SilentFlowClient extends BaseClient {
             uniqueId: idTokenObj.claims.oid || idTokenObj.claims.sub,
             tenantId: idTokenObj.claims.tid,
             scopes: requestScopes.asArray(),
+            account: CacheHelper.toIAccount(cacheRecord.account),
             idToken: cacheRecord.idToken.secret,
             idTokenClaims: idTokenObj.claims,
             accessToken: cacheRecord.accessToken.secret,
-            account: CacheHelper.toIAccount(cacheRecord.account),
             expiresOn: new Date(cacheRecord.accessToken.expiresOn),
             extExpiresOn: new Date(cacheRecord.accessToken.extendedExpiresOn),
             familyId: null,
@@ -97,13 +98,13 @@ export class SilentFlowClient extends BaseClient {
      * fetches idToken from cache if present
      * @param request
      */
-    fetchIdToken(homeAccountId: string, environment: string): IdTokenEntity {
+    private fetchIdToken(homeAccountId: string, environment: string, inputRealm: string): IdTokenEntity {
         const idTokenKey: string = CacheHelper.generateCredentialCacheKey(
             homeAccountId,
             environment,
             CredentialType.ID_TOKEN,
             this.config.authOptions.clientId,
-            this.defaultAuthority.tenant
+            inputRealm
         );
         return this.unifiedCacheManager.getCredential(idTokenKey) as IdTokenEntity;
     }
@@ -113,24 +114,30 @@ export class SilentFlowClient extends BaseClient {
      * @param request
      * @param scopes
      */
-    fetchAccessToken(homeAccountId: string, environment: string, scopes: ScopeSet): AccessTokenEntity {
-        const accessTokenKey: string = CacheHelper.generateCredentialCacheKey(
+    private fetchAccessToken(homeAccountId: string, environment: string, scopes: ScopeSet, inputRealm: string): AccessTokenEntity {
+        const accessTokenFilter: CredentialFilter = {
             homeAccountId,
             environment,
-            CredentialType.ACCESS_TOKEN,
-            this.config.authOptions.clientId,
-            this.defaultAuthority.tenant,
-            scopes.printScopes()
-        );
-
-        return this.unifiedCacheManager.getCredential(accessTokenKey) as AccessTokenEntity;
+            credentialType: CredentialType.ACCESS_TOKEN,
+            clientId: this.config.authOptions.clientId,
+            realm: inputRealm,
+            target: scopes.printScopes()
+        };
+        const credentialCache: CredentialCache = this.unifiedCacheManager.getCredentialsFilteredBy(accessTokenFilter);
+        const accessTokens = Object.values(credentialCache);
+        if (accessTokens.length > 1) {
+            // TODO: Figure out what to throw or return here.
+        } else if (accessTokens.length < 1) {
+            return null;
+        }
+        return accessTokens[0] as AccessTokenEntity;
     }
 
     /**
      * fetches refreshToken from cache if present
      * @param request
      */
-    fetchRefreshToken(homeAccountId: string, environment: string): RefreshTokenEntity {
+    private fetchRefreshToken(homeAccountId: string, environment: string): RefreshTokenEntity {
         const refreshTokenKey: string = CacheHelper.generateCredentialCacheKey(
             homeAccountId,
             environment,
@@ -144,12 +151,15 @@ export class SilentFlowClient extends BaseClient {
      * check if an access token is expired
      * @param expiresOn
      */
-    isTokenExpired(expiresOn: string): boolean {
+    private isTokenExpired(expiresOn: string): boolean {
         // check for access token expiry
-        const expirationSec = Number(expiresOn);
+        let expirationSec = Number(expiresOn);
         const offsetCurrentTimeSec = TimeUtils.nowSeconds() + this.config.systemOptions.tokenRenewalOffsetSeconds;
 
         // Check if refresh is forced, or if tokens are expired. If neither are true, return a token response with the found token entry.
-        return (expirationSec && expirationSec > offsetCurrentTimeSec);
+        if (!expirationSec) {
+            expirationSec = 0;
+        }
+        return (expirationSec > offsetCurrentTimeSec);
     }
 }

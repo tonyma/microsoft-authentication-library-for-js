@@ -41,12 +41,13 @@ import { CredentialFilter, CredentialCache } from "../cache/utils/CacheTypes";
  * from the Microsoft STS using the authorization code flow.
  */
 export class SPAClient extends BaseClient {
-
     constructor(configuration: ClientConfiguration) {
         // Implement base module
         super(configuration);
 
-        B2cAuthority.setKnownAuthorities(this.config.authOptions.knownAuthorities);
+        B2cAuthority.setKnownAuthorities(
+            this.config.authOptions.knownAuthorities
+        );
     }
 
     /**
@@ -64,7 +65,9 @@ export class SPAClient extends BaseClient {
      * Including any SSO parameters (account, sid, login_hint) will short circuit the authentication and allow you to retrieve a code without interaction.
      * @param request
      */
-    async createAcquireTokenUrl(request: AuthorizationUrlRequest): Promise<string> {
+    async createAcquireTokenUrl(
+        request: AuthorizationUrlRequest
+    ): Promise<string> {
         return this.createUrl(request, false);
     }
 
@@ -73,13 +76,24 @@ export class SPAClient extends BaseClient {
      * @param request
      * @param isLoginCall
      */
-    private async createUrl(request: AuthorizationUrlRequest, isLoginCall: boolean): Promise<string> {
+    private async createUrl(
+        request: AuthorizationUrlRequest,
+        isLoginCall: boolean
+    ): Promise<string> {
         // Initialize authority or use default, and perform discovery endpoint check.
-        const acquireTokenAuthority = (request && request.authority) ? AuthorityFactory.createInstance(request.authority, this.networkClient) : this.defaultAuthority;
+        const acquireTokenAuthority =
+            request && request.authority
+                ? AuthorityFactory.createInstance(
+                    request.authority,
+                    this.networkClient
+                )
+                : this.defaultAuthority;
 
         // This is temporary. Remove when ADFS is supported for browser
-        if(acquireTokenAuthority.authorityType == AuthorityType.Adfs){
-            throw ClientAuthError.createInvalidAuthorityTypeError(acquireTokenAuthority.canonicalAuthority);
+        if (acquireTokenAuthority.authorityType == AuthorityType.Adfs) {
+            throw ClientAuthError.createInvalidAuthorityTypeError(
+                acquireTokenAuthority.canonicalAuthority
+            );
         }
 
         try {
@@ -88,11 +102,17 @@ export class SPAClient extends BaseClient {
             throw ClientAuthError.createEndpointDiscoveryIncompleteError(e);
         }
 
-        const queryString = await this.createUrlRequestParamString(request, isLoginCall);
+        const queryString = await this.createUrlRequestParamString(
+            request,
+            isLoginCall
+        );
         return `${acquireTokenAuthority.authorizationEndpoint}?${queryString}`;
     }
 
-    private async createUrlRequestParamString(request: AuthorizationUrlRequest, isLoginCall: boolean): Promise<string> {
+    private async createUrlRequestParamString(
+        request: AuthorizationUrlRequest,
+        isLoginCall: boolean
+    ): Promise<string> {
         const parameterBuilder = new RequestParameterBuilder();
 
         parameterBuilder.addResponseTypeCode();
@@ -100,7 +120,7 @@ export class SPAClient extends BaseClient {
         // Client ID
         parameterBuilder.addClientId(this.config.authOptions.clientId);
         const scopeSet = new ScopeSet(
-            request && request.scopes || [],
+            (request && request.scopes) || [],
             this.config.authOptions.clientId,
             !isLoginCall
         );
@@ -113,14 +133,22 @@ export class SPAClient extends BaseClient {
 
         parameterBuilder.addRedirectUri(this.getRedirectUri());
 
-        const correlationId = (request && request.correlationId) || this.config.cryptoInterface.createNewGuid();
+        const correlationId =
+            (request && request.correlationId) ||
+            this.config.cryptoInterface.createNewGuid();
         parameterBuilder.addCorrelationId(correlationId);
 
-        parameterBuilder.addCodeChallengeParams(request.codeChallenge, request.codeChallengeMethod || `${Constants.S256_CODE_CHALLENGE_METHOD}`);
+        parameterBuilder.addCodeChallengeParams(
+            request.codeChallenge,
+            request.codeChallengeMethod ||
+                `${Constants.S256_CODE_CHALLENGE_METHOD}`
+        );
 
         parameterBuilder.addState(request.state);
 
-        parameterBuilder.addNonce(request.nonce || this.config.cryptoInterface.createNewGuid());
+        parameterBuilder.addNonce(
+            request.nonce || this.config.cryptoInterface.createNewGuid()
+        );
 
         parameterBuilder.addClientInfo();
 
@@ -145,7 +173,9 @@ export class SPAClient extends BaseClient {
         parameterBuilder.addResponseMode(ResponseMode.FRAGMENT);
 
         if (request && request.extraQueryParameters) {
-            parameterBuilder.addExtraQueryParameters(request && request.extraQueryParameters);
+            parameterBuilder.addExtraQueryParameters(
+                request && request.extraQueryParameters
+            );
         }
 
         return parameterBuilder.createQueryString();
@@ -164,7 +194,13 @@ export class SPAClient extends BaseClient {
         }
 
         // Initialize authority or use default, and perform discovery endpoint check.
-        const acquireTokenAuthority = (codeRequest && codeRequest.authority) ? AuthorityFactory.createInstance(codeRequest.authority, this.networkClient) : this.defaultAuthority;
+        const acquireTokenAuthority =
+            codeRequest && codeRequest.authority
+                ? AuthorityFactory.createInstance(
+                    codeRequest.authority,
+                    this.networkClient
+                )
+                : this.defaultAuthority;
         if (!acquireTokenAuthority.discoveryComplete()) {
             try {
                 await acquireTokenAuthority.resolveEndpointsAsync();
@@ -176,7 +212,9 @@ export class SPAClient extends BaseClient {
         const parameterBuilder = new RequestParameterBuilder();
         parameterBuilder.addClientId(this.config.authOptions.clientId);
 
-        parameterBuilder.addRedirectUri(codeRequest.redirectUri || this.getRedirectUri());
+        parameterBuilder.addRedirectUri(
+            codeRequest.redirectUri || this.getRedirectUri()
+        );
 
         const scopeSet = new ScopeSet(
             codeRequest.scopes || [],
@@ -213,7 +251,7 @@ export class SPAClient extends BaseClient {
         if (!request) {
             throw ClientConfigurationError.createEmptyTokenRequestError();
         }
-		
+
         if (!request.account) {
             throw ClientAuthError.createNoAccountInSilentRequestError();
         }
@@ -268,7 +306,7 @@ export class SPAClient extends BaseClient {
             if (acquireTokenAuthority.authorityType == AuthorityType.Adfs){
                 throw ClientAuthError.createInvalidAuthorityTypeError(acquireTokenAuthority.canonicalAuthority);
             }
-	
+
             if (!acquireTokenAuthority.discoveryComplete()) {
                 try {
                     await acquireTokenAuthority.resolveEndpointsAsync();
@@ -301,7 +339,9 @@ export class SPAClient extends BaseClient {
         // Get postLogoutRedirectUri.
         let postLogoutRedirectUri = "";
         try {
-            postLogoutRedirectUri = `?${AADServerParamKeys.POST_LOGOUT_URI}=` + encodeURIComponent(this.getPostLogoutRedirectUri());
+            postLogoutRedirectUri =
+                `?${AADServerParamKeys.POST_LOGOUT_URI}=` +
+                encodeURIComponent(this.getPostLogoutRedirectUri());
         } catch (e) {}
 
         // Acquire token authorities.
@@ -310,8 +350,10 @@ export class SPAClient extends BaseClient {
         }
 
         // This is temporary. Remove when ADFS is supported for browser
-        if(acquireTokenAuthority.authorityType == AuthorityType.Adfs){
-            throw ClientAuthError.createInvalidAuthorityTypeError(acquireTokenAuthority.canonicalAuthority);
+        if (acquireTokenAuthority.authorityType == AuthorityType.Adfs) {
+            throw ClientAuthError.createInvalidAuthorityTypeError(
+                acquireTokenAuthority.canonicalAuthority
+            );
         }
 
         if (!acquireTokenAuthority.discoveryComplete()) {
@@ -336,12 +378,17 @@ export class SPAClient extends BaseClient {
      * the client to exchange for a token in acquireToken.
      * @param hashFragment
      */
-    public handleFragmentResponse(hashFragment: string, cachedState: string): string {
+    public handleFragmentResponse(
+        hashFragment: string,
+        cachedState: string
+    ): string {
         // Handle responses.
         const responseHandler = new ResponseHandler(this.config.authOptions.clientId, this.unifiedCacheManager, this.cryptoUtils, this.logger);
         // Deserialize hash fragment response parameters.
         const hashUrlString = new UrlString(hashFragment);
-        const serverParams = hashUrlString.getDeserializedHash<ServerAuthorizationCodeResponse>();
+        const serverParams = hashUrlString.getDeserializedHash<
+        ServerAuthorizationCodeResponse
+        >();
         // Get code response
         responseHandler.validateServerAuthorizationCodeResponse(serverParams, cachedState, this.cryptoUtils);
         return serverParams.code;
@@ -410,11 +457,14 @@ export class SPAClient extends BaseClient {
      */
     private isTokenExpired(expiresOn: string): boolean {
         // check for access token expiry
-        const expirationSec = Number(expiresOn);
+        let expirationSec = Number(expiresOn);
         const offsetCurrentTimeSec = TimeUtils.nowSeconds() + this.config.systemOptions.tokenRenewalOffsetSeconds;
 
         // Check if refresh is forced, or if tokens are expired. If neither are true, return a token response with the found token entry.
-        return (expirationSec && expirationSec > offsetCurrentTimeSec);
+        if (!expirationSec) {
+            expirationSec = 0;
+        }
+        return (expirationSec > offsetCurrentTimeSec);
     }
 
     /**
@@ -426,13 +476,12 @@ export class SPAClient extends BaseClient {
      */
     private async getTokenResponse(tokenEndpoint: string, parameterBuilder: RequestParameterBuilder, authority: Authority, userState: string, cachedNonce?: string): Promise<AuthenticationResult> {
         // Perform token request.
-        const acquiredTokenResponse = await this.networkClient.sendPostRequestAsync<ServerAuthorizationTokenResponse>(
-            tokenEndpoint,
-            {
-                body: parameterBuilder.createQueryString(),
-                headers: this.createDefaultTokenRequestHeaders()
-            }
-        );
+        const acquiredTokenResponse = await this.networkClient.sendPostRequestAsync<
+        ServerAuthorizationTokenResponse
+        >(tokenEndpoint, {
+            body: parameterBuilder.createQueryString(),
+            headers: this.createDefaultTokenRequestHeaders(),
+        });
 
         // Create response handler
         const responseHandler = new ResponseHandler(this.config.authOptions.clientId, this.unifiedCacheManager, this.cryptoUtils, this.logger);
@@ -490,7 +539,9 @@ export class SPAClient extends BaseClient {
         if (this.config.authOptions.redirectUri) {
             if (typeof this.config.authOptions.redirectUri === "function") {
                 return this.config.authOptions.redirectUri();
-            } else if (!StringUtils.isEmpty(this.config.authOptions.redirectUri)) {
+            } else if (
+                !StringUtils.isEmpty(this.config.authOptions.redirectUri)
+            ) {
                 return this.config.authOptions.redirectUri;
             }
         }
@@ -506,9 +557,16 @@ export class SPAClient extends BaseClient {
      */
     public getPostLogoutRedirectUri(): string {
         if (this.config.authOptions.postLogoutRedirectUri) {
-            if (typeof this.config.authOptions.postLogoutRedirectUri === "function") {
+            if (
+                typeof this.config.authOptions.postLogoutRedirectUri ===
+                "function"
+            ) {
                 return this.config.authOptions.postLogoutRedirectUri();
-            } else if (!StringUtils.isEmpty(this.config.authOptions.postLogoutRedirectUri)) {
+            } else if (
+                !StringUtils.isEmpty(
+                    this.config.authOptions.postLogoutRedirectUri
+                )
+            ) {
                 return this.config.authOptions.postLogoutRedirectUri;
             }
         }

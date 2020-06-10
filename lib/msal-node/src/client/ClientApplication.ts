@@ -68,9 +68,7 @@ export abstract class ClientApplication {
      * acquireToken(AuthorizationCodeRequest)
      * @param request
      */
-    async getAuthCodeUrl(
-        request: AuthorizationUrlRequest
-    ): Promise<string> {
+    async getAuthCodeUrl(request: AuthorizationUrlRequest): Promise<string> {
         const authClientConfig = await this.buildOauthClientConfiguration(
             request.authority
         );

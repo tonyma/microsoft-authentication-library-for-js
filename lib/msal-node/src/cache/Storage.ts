@@ -60,8 +60,12 @@ export class Storage implements ICacheStorage {
      * @param type
      * @param inMemory
      */
-    setItem(key: string, value: string | object, type?: string, inMemory?: boolean): void {
-
+    setItem(
+        key: string,
+        value: string | object,
+        type?: string,
+        inMemory?: boolean
+    ): void {
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -118,7 +122,6 @@ export class Storage implements ICacheStorage {
      * @param inMemory
      */
     getItem(key: string, type?: string, inMemory?: boolean): string | object {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -174,7 +177,6 @@ export class Storage implements ICacheStorage {
      * @param inMemory
      */
     removeItem(key: string, type?: string, inMemory?: boolean): boolean {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -253,10 +255,8 @@ export class Storage implements ICacheStorage {
 
     /**
      * Gets all keys in window.
-     * TODO: implement after the lookup implementation
      */
     getKeys(inMemory?: boolean): string[] {
-
         // check memory type
         if (!inMemory) {
             console.log("Node doesn't support granular cache persistence yet");
@@ -271,11 +271,10 @@ export class Storage implements ICacheStorage {
         Object.keys(cache).forEach(key => {
             Object.keys(key).forEach(internalKey => {
                 cacheKeys.push(internalKey);
-            })
+            });
         });
 
         return cacheKeys;
-
     }
 
     /**
@@ -295,7 +294,7 @@ export class Storage implements ICacheStorage {
         Object.keys(cache).forEach(key => {
             Object.keys(key).forEach(internalKey => {
                 this.removeItem(internalKey);
-            })
+            });
         });
 
         this.emitChange();
