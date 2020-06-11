@@ -41,6 +41,7 @@ import { CredentialFilter, CredentialCache } from "../cache/utils/CacheTypes";
  * from the Microsoft STS using the authorization code flow.
  */
 export class SPAClient extends BaseClient {
+
     constructor(configuration: ClientConfiguration) {
         // Implement base module
         super(configuration);
@@ -51,34 +52,12 @@ export class SPAClient extends BaseClient {
     }
 
     /**
-     * Creates a url for logging in a user. This will by default append the client id to the list of scopes,
-     * allowing you to retrieve an id token in the subsequent code exchange. Also performs validation of the request parameters.
-     * Including any SSO parameters (account, sid, login_hint) will short circuit the authentication and allow you to retrieve a code without interaction.
-     * @param request
-     */
-    async createLoginUrl(request: AuthorizationUrlRequest): Promise<string> {
-        return this.createUrl(request, true);
-    }
-
-    /**
      * Creates a url for logging in a user. Also performs validation of the request parameters.
      * Including any SSO parameters (account, sid, login_hint) will short circuit the authentication and allow you to retrieve a code without interaction.
      * @param request
      */
-    async createAcquireTokenUrl(
+    async createUrl(
         request: AuthorizationUrlRequest
-    ): Promise<string> {
-        return this.createUrl(request, false);
-    }
-
-    /**
-     * Helper function which creates URL. If isLoginCall is true, MSAL appends client id scope to retrieve id token from the service.
-     * @param request
-     * @param isLoginCall
-     */
-    private async createUrl(
-        request: AuthorizationUrlRequest,
-        isLoginCall: boolean
     ): Promise<string> {
         // Initialize authority or use default, and perform discovery endpoint check.
         const acquireTokenAuthority =
@@ -103,15 +82,13 @@ export class SPAClient extends BaseClient {
         }
 
         const queryString = await this.createUrlRequestParamString(
-            request,
-            isLoginCall
+            request
         );
         return `${acquireTokenAuthority.authorizationEndpoint}?${queryString}`;
     }
 
     private async createUrlRequestParamString(
-        request: AuthorizationUrlRequest,
-        isLoginCall: boolean
+        request: AuthorizationUrlRequest
     ): Promise<string> {
         const parameterBuilder = new RequestParameterBuilder();
 
@@ -119,11 +96,7 @@ export class SPAClient extends BaseClient {
 
         // Client ID
         parameterBuilder.addClientId(this.config.authOptions.clientId);
-        const scopeSet = new ScopeSet(
-            (request && request.scopes) || [],
-            this.config.authOptions.clientId,
-            !isLoginCall
-        );
+        const scopeSet = new ScopeSet((request && request.scopes) || [], this.config.authOptions.clientId);
 
         if (request.extraScopesToConsent) {
             scopeSet.appendScopes(request && request.extraScopesToConsent);
@@ -216,11 +189,7 @@ export class SPAClient extends BaseClient {
             codeRequest.redirectUri || this.getRedirectUri()
         );
 
-        const scopeSet = new ScopeSet(
-            codeRequest.scopes || [],
-            this.config.authOptions.clientId,
-            true
-        );
+        const scopeSet = new ScopeSet(codeRequest.scopes || [], this.config.authOptions.clientId);
         parameterBuilder.addScopes(scopeSet);
 
         // add code: set by user, not validated
@@ -237,7 +206,7 @@ export class SPAClient extends BaseClient {
         // User helper to retrieve token response.
         // Need to await function call before return to catch any thrown errors.
         // if errors are thrown asynchronously in return statement, they are caught by caller of this function instead.
-        return await this.getTokenResponse(tokenEndpoint, parameterBuilder, acquireTokenAuthority, userState, cachedNonce);
+        return await this.getTokenResponse(tokenEndpoint, parameterBuilder, acquireTokenAuthority, cachedNonce);
     }
 
     /**
@@ -257,7 +226,7 @@ export class SPAClient extends BaseClient {
         }
 
         // Get account object for this request.
-        const requestScopes = new ScopeSet(request.scopes || [], this.config.authOptions.clientId, true);
+        const requestScopes = new ScopeSet(request.scopes || [], this.config.authOptions.clientId);
 
         // Get current cached tokens
         const cacheRecord = new CacheRecord();
@@ -280,7 +249,7 @@ export class SPAClient extends BaseClient {
             cacheRecord.idToken = this.fetchIdToken(homeAccountId, env, cacheRecord.account.realm);
             const idTokenObj = new IdToken(cacheRecord.idToken.secret, this.cryptoUtils);
 
-            const cachedScopes = ScopeSet.fromString(cacheRecord.accessToken.target, this.config.authOptions.clientId, true);
+            const cachedScopes = ScopeSet.fromString(cacheRecord.accessToken.target, this.config.authOptions.clientId);
             return {
                 uniqueId: idTokenObj.claims.oid || idTokenObj.claims.sub,
                 tenantId: idTokenObj.claims.tid,
@@ -288,6 +257,7 @@ export class SPAClient extends BaseClient {
                 idToken: idTokenObj.rawIdToken,
                 idTokenClaims: idTokenObj.claims,
                 accessToken: cacheRecord.accessToken.secret,
+                fromCache: true,
                 account: CacheHelper.toIAccount(cacheRecord.account),
                 expiresOn: new Date(cacheRecord.accessToken.expiresOn),
                 extExpiresOn: new Date(cacheRecord.accessToken.extendedExpiresOn),
@@ -386,9 +356,7 @@ export class SPAClient extends BaseClient {
         const responseHandler = new ResponseHandler(this.config.authOptions.clientId, this.unifiedCacheManager, this.cryptoUtils, this.logger);
         // Deserialize hash fragment response parameters.
         const hashUrlString = new UrlString(hashFragment);
-        const serverParams = hashUrlString.getDeserializedHash<
-        ServerAuthorizationCodeResponse
-        >();
+        const serverParams = hashUrlString.getDeserializedHash<ServerAuthorizationCodeResponse>();
         // Get code response
         responseHandler.validateServerAuthorizationCodeResponse(serverParams, cachedState, this.cryptoUtils);
         return serverParams.code;
@@ -474,7 +442,7 @@ export class SPAClient extends BaseClient {
      * @param tokenRequest
      * @param codeResponse
      */
-    private async getTokenResponse(tokenEndpoint: string, parameterBuilder: RequestParameterBuilder, authority: Authority, userState: string, cachedNonce?: string): Promise<AuthenticationResult> {
+    private async getTokenResponse(tokenEndpoint: string, parameterBuilder: RequestParameterBuilder, authority: Authority, cachedNonce?: string): Promise<AuthenticationResult> {
         // Perform token request.
         const acquiredTokenResponse = await this.networkClient.sendPostRequestAsync<
         ServerAuthorizationTokenResponse
@@ -488,7 +456,7 @@ export class SPAClient extends BaseClient {
         // Validate response. This function throws a server error if an error is returned by the server.
         responseHandler.validateTokenResponse(acquiredTokenResponse.body);
         // Return token response with given parameters
-        const tokenResponse = responseHandler.generateAuthenticationResult(acquiredTokenResponse.body, authority);
+        const tokenResponse = responseHandler.generateAuthenticationResult(acquiredTokenResponse.body, authority, cachedNonce);
 
         return tokenResponse;
     }
@@ -507,21 +475,19 @@ export class SPAClient extends BaseClient {
 
         parameterBuilder.addRedirectUri(this.getRedirectUri());
 
-        const scopeSet = new ScopeSet(
-            refreshTokenRequest.scopes || [],
-            this.config.authOptions.clientId,
-            true
-        );
+        const scopeSet = new ScopeSet(refreshTokenRequest.scopes || [], this.config.authOptions.clientId);
         parameterBuilder.addScopes(scopeSet);
 
         parameterBuilder.addRefreshToken(refreshTokenRequest.refreshToken);
 
         parameterBuilder.addGrantType(GrantType.REFRESH_TOKEN_GRANT);
 
+        parameterBuilder.addClientInfo();
+
         // User helper to retrieve token response.
         // Need to await function call before return to catch any thrown errors.
         // if errors are thrown asynchronously in return statement, they are caught by caller of this function instead.
-        return await this.getTokenResponse(tokenEndpoint, parameterBuilder, authority, "");
+        return await this.getTokenResponse(tokenEndpoint, parameterBuilder, authority);
     }
 
     // #endregion

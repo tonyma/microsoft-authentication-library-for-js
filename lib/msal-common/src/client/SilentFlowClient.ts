@@ -35,7 +35,7 @@ export class SilentFlowClient extends BaseClient {
     public async acquireToken(request: SilentFlowRequest): Promise<AuthenticationResult>{
         let cacheRecord: CacheRecord;
         let idTokenObj: IdToken;
-        const requestScopes = new ScopeSet(request.scopes || [], this.config.authOptions.clientId, true);
+        const requestScopes = new ScopeSet(request.scopes || [], this.config.authOptions.clientId);
 
         // We currently do not support silent flow for account === null use cases; This will be revisited for confidential flow usecases
         if (request.account === null) {
@@ -88,6 +88,7 @@ export class SilentFlowClient extends BaseClient {
             idToken: cacheRecord.idToken.secret,
             idTokenClaims: idTokenObj.claims,
             accessToken: cacheRecord.accessToken.secret,
+            fromCache: true,
             expiresOn: new Date(cacheRecord.accessToken.expiresOn),
             extExpiresOn: new Date(cacheRecord.accessToken.extendedExpiresOn),
             familyId: null,
