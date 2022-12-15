@@ -14,7 +14,7 @@
   "dependencies": {
     "@azure/msal-node": "^1.0.0-alpha.5",
     "axios": "^0.19.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "express-handlebars": "^4.0.4"
   }
 }
