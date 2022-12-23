@@ -81,6 +81,6 @@
     "@azure/msal-common": "^1.2.0",
     "axios": "^0.19.2",
     "debug": "^4.1.1",
-    "jsonwebtoken": "^8.5.1"
+    "jsonwebtoken": "^9.0.0"
   }
 }
