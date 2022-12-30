@@ -85,7 +85,7 @@
     "jsdom": "14.0.0",
     "jsdom-global": "3.0.2",
     "jshint": "^2.9.7",
-    "mocha": "^7.1.2",
+    "mocha": "^10.2.0",
     "nyc": "^14.1.1",
     "phantomjs-polyfill": "0.0.2",
     "rimraf": "^3.0.0",
